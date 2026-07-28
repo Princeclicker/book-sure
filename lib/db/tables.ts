@@ -6,7 +6,7 @@ let _t: typeof pgSchema | null = null
 function getTables() {
   if (_t) return _t
   if (isDev) {
-    const sqlite = require('./sqlite') as typeof import('./sqlite')
+    const sqlite = require('./sqlite')
     _t = sqlite.devFullSchema as unknown as typeof pgSchema
   } else {
     _t = pgSchema as typeof pgSchema
