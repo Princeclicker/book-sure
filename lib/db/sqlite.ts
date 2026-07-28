@@ -7,7 +7,8 @@ let _devDb: BetterSQLite3Database | null = null
 
 function getSQLite(): any {
   if (_sqlite) return _sqlite
-  const Database = require('better-sqlite3')
+  const _require = eval('require')
+  const Database = _require('better-sqlite3')
   _sqlite = new Database('data/booksure-dev.db')
   _sqlite.pragma('journal_mode = WAL')
   _sqlite.pragma('foreign_keys = ON')
@@ -516,7 +517,8 @@ function initSchema(sqlite: InstanceType<typeof Database>) {
 export function getDevDb(): BetterSQLite3Database {
   if (_devDb) return _devDb
   const sqlite = getSQLite()
-  const { drizzle } = require('drizzle-orm/better-sqlite3')
+  const _require = eval('require')
+  const { drizzle } = _require('drizzle-orm/better-sqlite3')
   _devDb = drizzle(sqlite)
   return _devDb
 }
