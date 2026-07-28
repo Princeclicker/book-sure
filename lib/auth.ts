@@ -1,7 +1,6 @@
 import { betterAuth } from 'better-auth'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
-import { pool } from '@/lib/db'
-import * as schema from '@/lib/db/schema'
+import { db } from '@/lib/db'
 const isDev = process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
 
 let devDbRef: any = null
@@ -15,7 +14,7 @@ if (isDev) {
 export const auth = betterAuth({
   database: isDev
     ? drizzleAdapter(devDbRef, { provider: 'sqlite', schema: devAuthSchemaRef })
-    : drizzleAdapter(pool, { provider: 'pg', schema }),
+    : drizzleAdapter(db, { provider: 'pg' }),
   secret:
     process.env.BETTER_AUTH_SECRET ?? (isDev ? 'dev-secret-at-least-32-characters-long!!' : undefined),
   baseURL:
