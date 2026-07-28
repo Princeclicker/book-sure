@@ -23,6 +23,8 @@ let devDbRef: any = null
 if (isDev) {
   const sqlite = require('./sqlite')
   devDbRef = sqlite.devDb
+} else {
+  ensureProdDb()
 }
 
 // In dev mode, export devDb directly (it already has its own lazy Proxy).
