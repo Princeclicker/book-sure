@@ -15,6 +15,7 @@ const nextConfig = {
   serverExternalPackages: [
     'better-sqlite3',
     'pg',
+    'drizzle-orm/node-postgres',
     'nodemailer',
     'resend',
   ],
