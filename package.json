@@ -13,6 +13,7 @@
     "db:generate": "drizzle-kit generate",
     "db:verify": "cross-env NODE_ENV=development tsx --env-file=.env.local scripts/verify-bos-tables.ts",
     "db:migrate:pg": "cross-env NODE_ENV=development tsx --env-file=.env.local scripts/migrate-pg.ts",
+    "db:migrate:prod": "node --env-file=.env.production node_modules/drizzle-kit/bin.cjs migrate",
     "test:e2e": "cross-env NODE_ENV=development tsx scripts/e2e-bos-test.ts",
     "backfill-emails": "cross-env NODE_ENV=development tsx --env-file=.env.local scripts/send-missing-emails.ts",
     "backfill-notifications": "cross-env NODE_ENV=development tsx --env-file=.env.local scripts/send-missing-notifications.ts",

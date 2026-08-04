@@ -2,11 +2,11 @@
 /**
  * PostgreSQL BOS Migration Runner
  *
- * Runs the 0000_soft_tigra.sql migration against PostgreSQL.
+ * Runs the 0000_initial_full_schema.sql migration against PostgreSQL.
  * Only use when DATABASE_URL is configured.
  *
  * Usage:
- *   npx tsx --env-file=.env.local scripts/migrate-pg.ts
+ *   npx tsx --env-file=.env.production scripts/migrate-pg.ts
  */
 
 import { Pool } from 'pg'
@@ -49,9 +49,9 @@ async function migrate() {
     console.log('Connected to PostgreSQL successfully.\n')
 
     // Run migration
-    const sqlPath = join(__dirname, '..', 'drizzle', '0000_soft_tigra.sql')
+    const sqlPath = join(__dirname, '..', 'drizzle', '0000_initial_full_schema.sql')
     const sql = readFileSync(sqlPath, 'utf-8')
-    console.log('Running migration: 0000_soft_tigra.sql')
+    console.log('Running migration: 0000_initial_full_schema.sql')
     await client.query(sql)
     console.log('Migration completed.\n')
 
