@@ -1,16 +1,16 @@
 import { promises as dns } from 'dns'
 
-const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+export const EMAIL_REGEX = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 const GMAIL_DOMAINS = new Set(['gmail.com', 'googlemail.com'])
 
-const DISPOSABLE_DOMAINS = new Set([
+export const DISPOSABLE_DOMAINS = new Set([
   'mailinator.com', 'guerrillamail.com', '10minutemail.com', 'tempmail.com',
   'throwaway.email', 'yopmail.com', 'sharklasers.com', 'trashmail.com',
   'mailnator.com', 'getairmail.com', 'temp-mail.org', 'fakeinbox.com',
   'mailexpire.com', 'mailcatch.com', 'spambox.us', 'tempr.email',
 ])
 
-const ROLE_BASED_PREFIXES = [
+export const ROLE_BASED_PREFIXES = [
   'admin', 'info', 'support', 'sales', 'contact', 'help', 'noreply',
   'no-reply', 'webmaster', 'postmaster', 'marketing', 'billing',
   'abuse', 'team', 'hello', 'inquiries',

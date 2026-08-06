@@ -433,10 +433,85 @@ function initSchema(sqlite: InstanceType<typeof Database>) {
       "metadata" text DEFAULT '{}',
       "createdAt" integer NOT NULL
     );
+
+    CREATE TABLE IF NOT EXISTS "feature_flags" (
+      "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+      "key" text NOT NULL UNIQUE,
+      "label" text NOT NULL,
+      "description" text,
+      "category" text NOT NULL DEFAULT 'general',
+      "enabled" integer NOT NULL DEFAULT 0,
+      "createdAt" integer NOT NULL,
+      "updatedAt" integer NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS "professions" (
+      "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+      "slug" text NOT NULL UNIQUE,
+      "name" text NOT NULL,
+      "description" text,
+      "isArchived" integer NOT NULL DEFAULT 0,
+      "config" text DEFAULT '{}',
+      "createdAt" integer NOT NULL,
+      "updatedAt" integer NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS "audit_logs" (
+      "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+      "actorUserId" text,
+      "actorEmail" text,
+      "action" text NOT NULL,
+      "targetType" text,
+      "targetId" text,
+      "metadata" text DEFAULT '{}',
+      "ipAddress" text,
+      "createdAt" integer NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS "platform_notifications" (
+      "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+      "type" text NOT NULL,
+      "severity" text NOT NULL DEFAULT 'info',
+      "title" text NOT NULL,
+      "message" text,
+      "isRead" integer NOT NULL DEFAULT 0,
+      "createdAt" integer NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS "business_meta" (
+      "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+      "businessId" integer NOT NULL UNIQUE,
+      "status" text NOT NULL DEFAULT 'active',
+      "plan" text NOT NULL DEFAULT 'free',
+      "planStatus" text NOT NULL DEFAULT 'active',
+      "planRenewsAt" integer,
+      "storageBytes" integer NOT NULL DEFAULT 0,
+      "aiUsageTokens" integer NOT NULL DEFAULT 0,
+      "lastActiveAt" integer,
+      "createdAt" integer NOT NULL,
+      "updatedAt" integer NOT NULL
+    );
+
+    CREATE TABLE IF NOT EXISTS "platform_settings" (
+      "id" integer PRIMARY KEY AUTOINCREMENT NOT NULL,
+      "key" text NOT NULL UNIQUE,
+      "value" text NOT NULL,
+      "updatedAt" integer NOT NULL
+    );
   `)
 
   const existingColumns = sqlite.pragma('table_info(appointments)') as { name: string }[]
   const existingNames = new Set(existingColumns.map(c => c.name))
+
+  const userColumns = sqlite.pragma('table_info(user)') as { name: string }[]
+  if (!userColumns.some(c => c.name === 'suspended')) {
+    sqlite.exec(`ALTER TABLE "user" ADD COLUMN "suspended" integer NOT NULL DEFAULT 0;`)
+  }
+
+  const professionsColumns = sqlite.pragma('table_info(professions)') as { name: string }[]
+  if (professionsColumns.length && !professionsColumns.some(c => c.name === 'isCustom')) {
+    sqlite.exec(`ALTER TABLE "professions" ADD COLUMN "isCustom" integer NOT NULL DEFAULT 0;`)
+  }
 
   if (!existingNames.has('manage_token')) {
     sqlite.exec(`ALTER TABLE "appointments" ADD COLUMN "manage_token" text;`)
@@ -550,6 +625,7 @@ export const sqliteUser = sqliteTable('user', {
   emailVerified: integer('emailVerified', { mode: 'boolean' }).notNull().default(false),
   image: text('image'),
   role: text('role').default('user'),
+  suspended: integer('suspended', { mode: 'boolean' }).notNull().default(false),
   createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
   updatedAt: integer('updatedAt', { mode: 'timestamp_ms' }).notNull(),
 })
@@ -958,6 +1034,72 @@ export const sqliteAiInsights = sqliteTable('ai_insights', {
   createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
 })
 
+export const sqliteFeatureFlags = sqliteTable('feature_flags', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  key: text('key').notNull().unique(),
+  label: text('label').notNull(),
+  description: text('description'),
+  category: text('category').notNull().default('general'),
+  enabled: integer('enabled', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updatedAt', { mode: 'timestamp_ms' }).notNull(),
+})
+
+export const sqliteProfessions = sqliteTable('professions', {
+    id: integer('id').primaryKey({ autoIncrement: true }),
+    slug: text('slug').notNull().unique(),
+    name: text('name').notNull(),
+    description: text('description'),
+    isArchived: integer('isArchived', { mode: 'boolean' }).notNull().default(false),
+    isCustom: integer('isCustom', { mode: 'boolean' }).notNull().default(false),
+    config: text('config').default('{}'),
+    createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
+    updatedAt: integer('updatedAt', { mode: 'timestamp_ms' }).notNull(),
+  })
+
+export const sqliteAuditLogs = sqliteTable('audit_logs', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  actorUserId: text('actorUserId'),
+  actorEmail: text('actorEmail'),
+  action: text('action').notNull(),
+  targetType: text('targetType'),
+  targetId: text('targetId'),
+  metadata: text('metadata').default('{}'),
+  ipAddress: text('ipAddress'),
+  createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
+})
+
+export const sqlitePlatformNotifications = sqliteTable('platform_notifications', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  type: text('type').notNull(),
+  severity: text('severity').notNull().default('info'),
+  title: text('title').notNull(),
+  message: text('message'),
+  isRead: integer('isRead', { mode: 'boolean' }).notNull().default(false),
+  createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
+})
+
+export const sqliteBusinessMeta = sqliteTable('business_meta', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  businessId: integer('businessId').notNull().unique(),
+  status: text('status').notNull().default('active'),
+  plan: text('plan').notNull().default('free'),
+  planStatus: text('planStatus').notNull().default('active'),
+  planRenewsAt: integer('planRenewsAt', { mode: 'timestamp_ms' }),
+  storageBytes: integer('storageBytes').notNull().default(0),
+  aiUsageTokens: integer('aiUsageTokens').notNull().default(0),
+  lastActiveAt: integer('lastActiveAt', { mode: 'timestamp_ms' }),
+  createdAt: integer('createdAt', { mode: 'timestamp_ms' }).notNull(),
+  updatedAt: integer('updatedAt', { mode: 'timestamp_ms' }).notNull(),
+})
+
+export const sqlitePlatformSettings = sqliteTable('platform_settings', {
+  id: integer('id').primaryKey({ autoIncrement: true }),
+  key: text('key').notNull().unique(),
+  value: text('value').notNull(),
+  updatedAt: integer('updatedAt', { mode: 'timestamp_ms' }).notNull(),
+})
+
 export const devAuthSchema = {
   user: sqliteUser,
   session: sqliteSession,
@@ -995,4 +1137,10 @@ export const devFullSchema = {
   payments: sqlitePayments,
   aiProviders: sqliteAiProviders,
   aiInsights: sqliteAiInsights,
+  featureFlags: sqliteFeatureFlags,
+  professions: sqliteProfessions,
+  auditLogs: sqliteAuditLogs,
+  platformNotifications: sqlitePlatformNotifications,
+  businessMeta: sqliteBusinessMeta,
+  platformSettings: sqlitePlatformSettings,
 }

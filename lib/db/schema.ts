@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean, serial, integer, jsonb } from 'drizzle-orm/pg-core'
+import { pgTable, text, timestamp, boolean, serial, integer, jsonb, bigint } from 'drizzle-orm/pg-core'
 
 // --- Better Auth required tables -------------------------------------------
 // Column names are camelCase to match Better Auth's defaults. Do not rename.
@@ -10,6 +10,7 @@ export const user = pgTable('user', {
   emailVerified: boolean('emailVerified').notNull().default(false),
   image: text('image'),
   role: text('role').default('user'),
+  suspended: boolean('suspended').notNull().default(false),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
   updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 })
@@ -438,4 +439,75 @@ export const aiInsights = pgTable('ai_insights', {
   isDismissed: boolean('isDismissed').default(false),
   metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
   createdAt: timestamp('createdAt').notNull().defaultNow(),
+})
+
+// --- Platform Administration Tables -----------------------------------------
+// These tables back the Platform Administration Center (/admin). They are kept
+// separate from the business tables so admin capabilities never interfere with
+// the business-owner flows.
+
+export const featureFlags = pgTable('feature_flags', {
+  id: serial('id').primaryKey(),
+  key: text('key').notNull().unique(),
+  label: text('label').notNull(),
+  description: text('description'),
+  category: text('category').notNull().default('general'),
+  enabled: boolean('enabled').notNull().default(false),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+})
+
+export const professions = pgTable('professions', {
+  id: serial('id').primaryKey(),
+  slug: text('slug').notNull().unique(),
+  name: text('name').notNull(),
+  description: text('description'),
+  isArchived: boolean('isArchived').notNull().default(false),
+  isCustom: boolean('isCustom').notNull().default(false),
+  config: jsonb('config').$type<Record<string, unknown>>().default({}),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+})
+
+export const auditLogs = pgTable('audit_logs', {
+  id: serial('id').primaryKey(),
+  actorUserId: text('actorUserId'),
+  actorEmail: text('actorEmail'),
+  action: text('action').notNull(),
+  targetType: text('targetType'),
+  targetId: text('targetId'),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().default({}),
+  ipAddress: text('ipAddress'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+})
+
+export const platformNotifications = pgTable('platform_notifications', {
+  id: serial('id').primaryKey(),
+  type: text('type').notNull(),
+  severity: text('severity').notNull().default('info'),
+  title: text('title').notNull(),
+  message: text('message'),
+  isRead: boolean('isRead').notNull().default(false),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+})
+
+export const businessMeta = pgTable('business_meta', {
+  id: serial('id').primaryKey(),
+  businessId: integer('businessId').notNull().unique(),
+  status: text('status').notNull().default('active'),
+  plan: text('plan').notNull().default('free'),
+  planStatus: text('planStatus').notNull().default('active'),
+  planRenewsAt: timestamp('planRenewsAt'),
+  storageBytes: bigint('storageBytes', { mode: 'number' }).notNull().default(0),
+  aiUsageTokens: bigint('aiUsageTokens', { mode: 'number' }).notNull().default(0),
+  lastActiveAt: timestamp('lastActiveAt'),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
+})
+
+export const platformSettings = pgTable('platform_settings', {
+  id: serial('id').primaryKey(),
+  key: text('key').notNull().unique(),
+  value: jsonb('value').$type<Record<string, unknown>>().notNull(),
+  updatedAt: timestamp('updatedAt').notNull().defaultNow(),
 })

@@ -64,3 +64,58 @@ export async function sendVerificationCodeEmail(email: string, code: string): Pr
     return false
   }
 }
+
+export async function sendAuthVerificationEmail(email: string, url: string, name?: string | null): Promise<boolean> {
+  const transporter = getTransporter()
+  const subject = 'Confirm your email address'
+  const greeting = name ? `Hi ${name},` : 'Hi,'
+  const text = `${greeting}
+
+Thanks for creating a BookSure account. Please confirm your email address by clicking the link below:
+
+${url}
+
+This link expires in 24 hours. If you didn't create an account, you can safely ignore this email.`
+  const html = `
+    <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;">
+      <h2>Confirm your email address</h2>
+      <p>${greeting}</p>
+      <p>Thanks for creating a BookSure account. Please confirm your email address by clicking the button below:</p>
+      <div style="text-align: center; margin: 24px 0;">
+        <a href="${url}" style="display: inline-block; padding: 12px 24px; background: #3b82f6; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600;">Verify my email</a>
+      </div>
+      <p style="color: #6b7280; font-size: 14px;">If the button doesn't work, copy and paste this link into your browser:</p>
+      <p style="color: #6b7280; font-size: 12px; word-break: break-all;">${url}</p>
+      <hr style="border: none; border-top: 1px solid #e5e7eb; margin: 24px 0;" />
+      <p style="color: #9ca3af; font-size: 12px;">This link expires in 24 hours. If you didn't create an account, you can ignore this email.</p>
+    </div>
+  `
+
+  if (!transporter) {
+    console.log('')
+    console.log('╔══════════════════════════════════════════════════╗')
+    console.log('║      ACCOUNT EMAIL VERIFICATION LINK             ║')
+    console.log(`║  To: ${email.padEnd(45)}║`)
+    console.log(`║  URL: ${url.padEnd(43)}║`)
+    console.log('╚══════════════════════════════════════════════════╝')
+    console.log('')
+    console.log('  SMTP not configured. Set SMTP_HOST, SMTP_USER, SMTP_PASS')
+    console.log('  in .env.local to send real emails.')
+    console.log('')
+    return true
+  }
+
+  try {
+    await transporter.sendMail({
+      from: SMTP_FROM,
+      to: email,
+      subject,
+      text,
+      html,
+    })
+    return true
+  } catch (error) {
+    console.error('Failed to send verification email:', error)
+    return false
+  }
+}

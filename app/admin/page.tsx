@@ -1,178 +1,181 @@
-import { auth } from '@/lib/auth'
-import { headers } from 'next/headers'
-import { redirect } from 'next/navigation'
-import { db } from '@/lib/db'
-import { user, businesses, appointments } from '@/lib/db/tables'
-import { eq, desc, and, gte } from 'drizzle-orm'
 import Link from 'next/link'
-import { Users, Building2, CalendarCheck } from 'lucide-react'
+import { redirect } from 'next/navigation'
+import { getAdminUser, fmtNum, fmtCurrency, fmtBytes } from '@/lib/admin'
+import { getPlatformMetrics } from '@/lib/admin-metrics'
+import { StatCard } from '@/components/admin/stat-card'
+import { Badge, statusTone } from '@/components/admin/badge'
+import { Card, PageHeader } from '@/components/admin/page'
+import { BarChart, LineChart, Donut } from '@/components/admin/charts'
+import {
+  Building2, Users, CalendarDays, Contact, Target, FileText, DollarSign,
+  Brain, Database, Activity, HeartPulse, Bell,
+} from 'lucide-react'
+
+export const dynamic = 'force-dynamic'
 
 export default async function AdminPage() {
-  const session = await auth.api.getSession({ headers: await headers() })
-  if (!session?.user) redirect('/sign-in')
+  const admin = await getAdminUser()
+  if (!admin) redirect('/sign-in')
 
-  // Check for admin role (set via DB or email pattern)
-  const currentUser = await db
-    .select()
-    .from(user)
-    .where(eq(user.id, session.user.id))
-    .limit(1)
-    .then(r => r[0] || null)
-
-  const isAdmin = currentUser?.role === 'admin' || session.user.email?.includes('admin') || false
-
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center p-4">
-        <div className="max-w-md text-center">
-          <h1 className="text-2xl font-bold text-foreground mb-4">Access Denied</h1>
-          <p className="text-muted-foreground mb-6">You do not have admin privileges.</p>
-          <Link href="/dashboard" className="text-primary hover:underline text-sm">Back to Dashboard</Link>
-        </div>
-      </div>
-    )
-  }
-
-  const allUsers = await db.select().from(user).orderBy(desc(user.createdAt))
-  const allBusinesses = await db.select().from(businesses).orderBy(desc(businesses.createdAt))
-  const allAppointments = await db.select().from(appointments).orderBy(desc(appointments.createdAt))
-
-  const totalUsers = allUsers.length
-  const totalBusinesses = allBusinesses.length
-  const totalAppointments = allAppointments.length
+  const m = await getPlatformMetrics()
+  const t = m.totals
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Link href="/" className="text-xl font-bold text-foreground">BookSure</Link>
-            <span className="text-xs bg-primary/10 text-primary px-2 py-0.5 rounded-full font-medium">Admin</span>
-          </div>
-          <div className="flex items-center gap-3">
-            <Link href="/dashboard" className="text-sm text-muted-foreground hover:text-foreground">Dashboard</Link>
-            <span className="text-xs text-muted-foreground">{session.user.email}</span>
-          </div>
-        </div>
-      </header>
+    <div>
+      <PageHeader
+        title="Platform Dashboard"
+        description={`Welcome back, ${admin.user.name}. Overview of the entire BookSure platform.`}
+      />
 
-      <main className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
-        <div className="mb-8">
-          <h1 className="text-2xl font-bold text-foreground">Admin Panel</h1>
-          <p className="text-sm text-muted-foreground mt-1">Manage all businesses and users</p>
-        </div>
+      {/* Primary stats */}
+      <div className="grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <StatCard label="Businesses" value={fmtNum(t.businesses)} sub={`${fmtNum(t.activeBusinesses)} active`} icon={<Building2 className="h-4 w-4" />} />
+        <StatCard label="Total Users" value={fmtNum(t.users)} sub={`${fmtNum(t.activeUsersToday)} active today`} icon={<Users className="h-4 w-4" />} />
+        <StatCard label="Appointments" value={fmtNum(t.appointments)} icon={<CalendarDays className="h-4 w-4" />} />
+        <StatCard label="Contacts" value={fmtNum(t.contacts)} icon={<Contact className="h-4 w-4" />} />
+        <StatCard label="Opportunities" value={fmtNum(t.opportunities)} icon={<Target className="h-4 w-4" />} />
+        <StatCard label="Invoices" value={fmtNum(t.invoices)} sub={`${fmtNum(t.paidInvoices)} paid`} icon={<FileText className="h-4 w-4" />} />
+      </div>
+      <div className="mt-4 grid grid-cols-2 gap-4 md:grid-cols-3 xl:grid-cols-6">
+        <StatCard label="Platform Revenue" value={fmtCurrency(t.revenue)} tone="positive" icon={<DollarSign className="h-4 w-4" />} />
+        <StatCard label="AI Insights" value={fmtNum(t.aiInsights)} sub={`${fmtNum(t.aiTokens)} tokens`} tone="accent" icon={<Brain className="h-4 w-4" />} />
+        <StatCard label="Storage Usage" value={fmtBytes(t.storageBytes)} icon={<Database className="h-4 w-4" />} />
+        <StatCard label="API Calls (tracked)" value={fmtNum(t.apiCalls)} icon={<Activity className="h-4 w-4" />} />
+        <StatCard label="Active Sessions" value={fmtNum(t.sessions)} icon={<Users className="h-4 w-4" />} />
+        <StatCard label="System Health" value={`${m.health.filter(h => h.ok).length}/${m.health.length} OK`} tone={m.health.every(h => h.ok) ? 'positive' : 'warning'} icon={<HeartPulse className="h-4 w-4" />} />
+      </div>
 
-        {/* Stats */}
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-8">
-          <AdminStat icon={<Users className="w-4 h-4" />} label="Total Users" value={totalUsers} />
-          <AdminStat icon={<Building2 className="w-4 h-4" />} label="Businesses" value={totalBusinesses} />
-          <AdminStat icon={<CalendarCheck className="w-4 h-4" />} label="Appointments" value={totalAppointments} />
-        </div>
+      {/* Charts row 1 */}
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+        <Card title="Business Growth" description="New businesses per month">
+          <div className="p-4"><BarChart data={m.charts.businessGrowth} /></div>
+        </Card>
+        <Card title="User Growth" description="New users per month">
+          <div className="p-4"><BarChart data={m.charts.userGrowth} /></div>
+        </Card>
+      </div>
 
-        {/* Users Table */}
-        <div className="rounded-lg border border-border bg-card overflow-hidden mb-8">
-          <div className="p-4 border-b border-border">
-            <h2 className="font-semibold text-foreground">All Users ({totalUsers})</h2>
+      {/* Charts row 2 */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card title="Appointment Trends" description="Appointments per month">
+          <div className="p-4"><LineChart data={m.charts.appointmentTrends} /></div>
+        </Card>
+        <Card title="Revenue Trends" description="Payments per month">
+          <div className="p-4"><LineChart data={m.charts.revenueTrends} /></div>
+        </Card>
+      </div>
+
+      {/* AI + Storage */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card title="AI Usage" description="AI insights generated per month">
+          <div className="p-4"><BarChart data={m.charts.aiUsage} /></div>
+        </Card>
+        <Card title="Storage Usage" description="Tracked storage by business">
+          {m.charts.storageByBusiness.length ? (
+            <div className="p-4"><BarChart data={m.charts.storageByBusiness} /></div>
+          ) : (
+            <p className="p-4 text-sm text-muted-foreground">No storage data yet.</p>
+          )}
+        </Card>
+      </div>
+
+      {/* Appointment status + notifications */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card title="Appointment Status">
+          <div className="p-4">
+            {m.charts.appointmentStatus.length ? (
+              <Donut segments={m.charts.appointmentStatus} />
+            ) : (
+              <p className="text-sm text-muted-foreground">No appointment data yet.</p>
+            )}
           </div>
+        </Card>
+
+        <Card
+          title="Platform Notifications"
+          actions={<Link href="/admin/notifications" className="text-xs text-primary hover:underline">View all</Link>}
+        >
+          {m.notifications.length ? (
+            <div className="divide-y divide-border">
+              {m.notifications.slice(0, 5).map((n) => (
+                <div key={n.id} className="flex items-start gap-3 px-4 py-3">
+                  <Bell className={`mt-0.5 h-4 w-4 shrink-0 ${
+                    n.severity === 'danger' ? 'text-red-500' : n.severity === 'warning' ? 'text-amber-500' : 'text-muted-foreground'
+                  }`} />
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-foreground">{n.title}</p>
+                    {n.message && <p className="truncate text-xs text-muted-foreground">{n.message}</p>}
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="p-4 text-sm text-muted-foreground">All clear — no notifications.</p>
+          )}
+        </Card>
+      </div>
+
+      {/* Recent activity + health */}
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
+        <Card title="Recent Activity" description="Latest platform events">
+          {m.recentActivity.length ? (
+            <div className="divide-y divide-border">
+              {m.recentActivity.map((a) => (
+                <div key={a.id} className="flex items-center justify-between gap-3 px-4 py-2.5">
+                  <span className="truncate text-sm text-foreground">{a.title}</span>
+                  <span className="shrink-0 text-xs text-muted-foreground">{a.at}</span>
+                </div>
+              ))}
+            </div>
+          ) : (
+            <p className="p-4 text-sm text-muted-foreground">No recent activity.</p>
+          )}
+        </Card>
+
+        <Card title="System Health" description="Live platform services">
+          <div className="divide-y divide-border">
+            {m.health.map((h) => (
+              <div key={h.label} className="flex items-center justify-between gap-3 px-4 py-3">
+                <span className="text-sm text-foreground">{h.label}</span>
+                <span className="flex items-center gap-2 text-xs">
+                  <Badge tone={h.ok ? 'green' : 'red'}>{h.ok ? 'Operational' : 'Attention'}</Badge>
+                  <span className="text-muted-foreground">{h.detail}</span>
+                </span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </div>
+
+      {/* Top businesses */}
+      <div className="mt-4">
+        <Card title="Top Performing Businesses" description="Ranked by appointment volume">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="text-left p-3 text-muted-foreground font-medium">Name</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium">Email</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium">Business</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium">Role</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium">Joined</th>
+                <tr className="border-b border-border bg-muted/40">
+                  <th className="p-3 text-left font-medium text-muted-foreground">Business</th>
+                  <th className="p-3 text-left font-medium text-muted-foreground">Owner</th>
+                  <th className="p-3 text-left font-medium text-muted-foreground">Appointments</th>
+                  <th className="p-3 text-left font-medium text-muted-foreground">Plan</th>
+                  <th className="p-3 text-left font-medium text-muted-foreground">Status</th>
                 </tr>
               </thead>
               <tbody>
-                {allUsers.map(u => {
-                  const biz = allBusinesses.find(b => b.userId === u.id)
-                  const aptCount = allAppointments.filter(a => a.userId === u.id).length
-                  return (
-                    <tr key={u.id} className="border-b border-border hover:bg-muted/30">
-                      <td className="p-3 font-medium text-foreground">{u.name}</td>
-                      <td className="p-3 text-muted-foreground">{u.email}</td>
-                      <td className="p-3">{biz ? <span className="text-foreground">{biz.businessName}</span> : <span className="text-muted-foreground italic">—</span>}</td>
-                      <td className="p-3 text-muted-foreground">
-                        {u.role === 'admin' ? (
-                          <span className="text-xs font-medium text-amber-600">Admin</span>
-                        ) : (
-                          <span className="text-xs">User</span>
-                        )}
-                      </td>
-                      <td className="p-3 text-muted-foreground text-xs">
-                        {u.createdAt.toLocaleDateString()}
-                        <span className="ml-2 text-muted-foreground/60">{aptCount} appts</span>
-                      </td>
-                    </tr>
-                  )
-                })}
+                {m.topBusinesses.map((b, i) => (
+                  <tr key={i} className="border-b border-border hover:bg-muted/30">
+                    <td className="p-3 font-medium text-foreground">{b.name}</td>
+                    <td className="p-3 text-muted-foreground">{b.ownerEmail}</td>
+                    <td className="p-3 text-muted-foreground">{fmtNum(b.appointments)}</td>
+                    <td className="p-3"><Badge tone={statusTone(b.plan)}>{b.plan}</Badge></td>
+                    <td className="p-3"><Badge tone={statusTone(b.status)}>{b.status}</Badge></td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
-        </div>
-
-        {/* Recent Appointments */}
-        <div className="rounded-lg border border-border bg-card overflow-hidden">
-          <div className="p-4 border-b border-border">
-            <h2 className="font-semibold text-foreground">Recent Appointments ({totalAppointments})</h2>
-          </div>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/50">
-                  <th className="text-left p-3 text-muted-foreground font-medium">Customer</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium">Phone</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium">Business</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium">Date & Time</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium">Status</th>
-                  <th className="text-left p-3 text-muted-foreground font-medium">SMS</th>
-                </tr>
-              </thead>
-              <tbody>
-                {allAppointments.slice(0, 20).map(apt => {
-                  const biz = allBusinesses.find(b => b.userId === apt.userId)
-                  return (
-                    <tr key={apt.id} className="border-b border-border hover:bg-muted/30">
-                      <td className="p-3 font-medium text-foreground">{apt.customerName}</td>
-                      <td className="p-3 text-muted-foreground">{apt.customerPhone}</td>
-                      <td className="p-3 text-muted-foreground">{biz?.businessName || '—'}</td>
-                      <td className="p-3 text-muted-foreground text-xs">
-                        {apt.eventStart.toLocaleDateString()} {apt.eventStart.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}
-                      </td>
-                      <td className="p-3">
-                        <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${
-                          apt.status === 'confirmed' ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100' :
-                          apt.status === 'cancelled' ? 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100' :
-                          'bg-gray-100 text-gray-800 dark:bg-gray-800 dark:text-gray-100'
-                        }`}>
-                          {apt.status}
-                        </span>
-                      </td>
-                      <td className="p-3 text-xs text-muted-foreground">
-                        {apt.confirmationSent ? '✓ Sent' : apt.cancelledViaSms ? '📱 Cancel' : '—'}
-                      </td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-      </main>
-    </div>
-  )
-}
-
-function AdminStat({ icon, label, value }: { icon: React.ReactNode; label: string; value: string | number }) {
-  return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="flex items-center gap-2 text-muted-foreground mb-1">
-        {icon}
-        <span className="text-xs">{label}</span>
+        </Card>
       </div>
-      <p className="text-xl font-bold text-foreground">{value}</p>
     </div>
   )
 }
