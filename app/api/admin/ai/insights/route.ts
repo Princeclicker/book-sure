@@ -2,9 +2,8 @@ import { NextResponse } from 'next/server'
 import { eq, desc } from 'drizzle-orm'
 import { requireAdminApi, audit } from '@/lib/admin'
 import { db } from '@/lib/db'
-import { aiInsights, businessProfiles } from '@/lib/db/tables'
-import { generateInsights } from '@/lib/ai/rules-engine'
-import type { ProfessionId } from '@/lib/profession'
+import { aiInsights } from '@/lib/db/tables'
+import { syncInsightsForAll } from '@/lib/ai/insights-sync'
 
 export const dynamic = 'force-dynamic'
 
@@ -46,44 +45,12 @@ export async function POST() {
   const admin = await requireAdminApi()
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const profiles = await db.select().from(businessProfiles)
-  let generated = 0
-  let withErrors = 0
-
-  for (const profile of profiles) {
-    try {
-      const insights = await generateInsights(
-        profile.userId,
-        (profile.profession || 'freelancer') as ProfessionId
-      )
-      await db.delete(aiInsights).where(eq(aiInsights.userId, profile.userId))
-      if (insights.length > 0) {
-        await db.insert(aiInsights).values(
-          insights.map((i) => ({
-            userId: profile.userId,
-            insightType: i.type,
-            title: i.title,
-            description: i.description,
-            priority: i.priority,
-            actionType: i.actionType ?? null,
-            actionUrl: i.actionUrl ?? null,
-            actionLabel: i.actionLabel ?? null,
-            metadata: JSON.stringify(i.metadata ?? {}),
-            createdAt: new Date(),
-          }))
-        )
-        generated += insights.length
-      }
-    } catch (e) {
-      console.error(`[ai.regenerate] failed for ${profile.userId}:`, e)
-      withErrors++
-    }
-  }
+  const { businesses, generated, withErrors } = await syncInsightsForAll()
 
   await audit('ai.insights.regenerate', 'ai_insight', null, {
-    businesses: profiles.length,
+    businesses,
     generated,
     withErrors,
   })
-  return NextResponse.json({ ok: true, businesses: profiles.length, generated, withErrors })
+  return NextResponse.json({ ok: true, businesses, generated, withErrors })
 }

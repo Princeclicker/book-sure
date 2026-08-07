@@ -10,6 +10,8 @@ export interface AdminUsageRow {
   businessName: string
   plan: string
   tokens: number
+  appointments: number
+  contacts: number
 }
 
 export function UsageManager({ rows }: { rows: AdminUsageRow[] }) {
@@ -56,19 +58,27 @@ export function UsageManager({ rows }: { rows: AdminUsageRow[] }) {
             <tr className="border-b border-border bg-muted/40">
               <th className="p-3 text-left font-medium text-muted-foreground">Business</th>
               <th className="p-3 text-left font-medium text-muted-foreground">Plan</th>
-              <th className="p-3 text-left font-medium text-muted-foreground">AI tokens</th>
-              <th className="p-3 text-right font-medium text-muted-foreground">Actions</th>
+              <th className="p-3 text-right font-medium text-muted-foreground">Appointments</th>
+              <th className="p-3 text-right font-medium text-muted-foreground">Contacts</th>
+              <th className="p-3 text-right font-medium text-muted-foreground">AI tokens</th>
+              <th className="p-3 text-right font-medium text-muted-foreground">Manual override</th>
             </tr>
           </thead>
           <tbody>
             {filtered.length === 0 && (
-              <tr><td colSpan={4} className="p-6 text-center text-muted-foreground">No businesses with AI usage tracked.</td></tr>
+              <tr>
+                <td colSpan={6} className="p-6 text-center text-muted-foreground">
+                  No businesses yet. Tokens below are counted only from real AI API usage.
+                </td>
+              </tr>
             )}
             {filtered.map((r) => (
               <tr key={r.businessId} className="border-b border-border hover:bg-muted/30">
                 <td className="p-3 font-medium text-foreground">{r.businessName}</td>
                 <td className="p-3"><Badge tone={statusTone(r.plan)}>{r.plan}</Badge></td>
-                <td className="p-3 text-muted-foreground">{r.tokens.toLocaleString('en-US')}</td>
+                <td className="p-3 text-right text-muted-foreground">{r.appointments.toLocaleString('en-US')}</td>
+                <td className="p-3 text-right text-muted-foreground">{r.contacts.toLocaleString('en-US')}</td>
+                <td className="p-3 text-right text-muted-foreground">{r.tokens.toLocaleString('en-US')}</td>
                 <td className="p-3">
                   <div className="flex items-center justify-end gap-2">
                     <input

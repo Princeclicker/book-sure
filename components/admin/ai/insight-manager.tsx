@@ -128,7 +128,11 @@ export function InsightManager({
 
       <div className="divide-y divide-border">
         {filtered.length === 0 && (
-          <p className="p-4 text-sm text-muted-foreground">No insights match your filters.</p>
+          <p className="p-4 text-sm text-muted-foreground">
+            {insights.length === 0
+              ? 'No insights generated yet. Insights are computed from real platform data (appointments, contacts, invoices) and refresh automatically on page load.'
+              : 'No insights match your filters.'}
+          </p>
         )}
         {filtered.map((i) => (
           <div key={i.id} className="px-4 py-3">
