@@ -1,5 +1,5 @@
 import { redirect } from 'next/navigation'
-import { sql } from 'drizzle-orm'
+import { desc } from 'drizzle-orm'
 import { getAdminUser, fmtNum, getSetting } from '@/lib/admin'
 import { db } from '@/lib/db'
 import {
@@ -34,7 +34,7 @@ export default async function AdminAiPage() {
   const [providers, insights, metaRows, bizRows, userRows] = await Promise.all([
     db.select().from(aiProviders),
     db.select().from(aiInsights),
-    db.select().from(businessMeta).orderBy(sql`aiUsageTokens desc`),
+    db.select().from(businessMeta).orderBy(desc(businessMeta.aiUsageTokens)),
     db.select({ id: businesses.id, businessName: businesses.businessName, userId: businesses.userId }).from(businesses),
     db.select({ id: userTable.id, email: userTable.email }).from(userTable),
   ])
