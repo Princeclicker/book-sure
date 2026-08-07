@@ -1,29 +1,88 @@
 import { redirect } from 'next/navigation'
-import { eq, sql } from 'drizzle-orm'
-import { getAdminUser, fmtNum, jsn, getSetting } from '@/lib/admin'
+import { sql } from 'drizzle-orm'
+import { getAdminUser, fmtNum, getSetting } from '@/lib/admin'
 import { db } from '@/lib/db'
-import { aiProviders, aiInsights, businesses, businessMeta } from '@/lib/db/tables'
+import {
+  aiProviders,
+  aiInsights,
+  businesses,
+  businessMeta,
+  user as userTable,
+} from '@/lib/db/tables'
+import { parseProviderConfig } from '@/lib/ai/admin'
 import { StatCard } from '@/components/admin/stat-card'
 import { Badge, statusTone } from '@/components/admin/badge'
 import { PageHeader, Card } from '@/components/admin/page'
+import { AiEngineConfig } from '@/components/admin/ai/engine-config'
+import { ProviderManager } from '@/components/admin/ai/provider-manager'
+import { InsightManager } from '@/components/admin/ai/insight-manager'
+import { UsageManager } from '@/components/admin/ai/usage-manager'
 import { Brain, Cpu, Lightbulb, Sparkles } from 'lucide-react'
 
 export const dynamic = 'force-dynamic'
+
+function maskKey(key?: string | null): string {
+  if (!key) return ''
+  if (key.length <= 8) return '••••'
+  return `${key.slice(0, 4)}••••${key.slice(-4)}`
+}
 
 export default async function AdminAiPage() {
   const admin = await getAdminUser()
   if (!admin) redirect('/sign-in')
 
-  const [providers, insights, metaRows, bizRows] = await Promise.all([
+  const [providers, insights, metaRows, bizRows, userRows] = await Promise.all([
     db.select().from(aiProviders),
     db.select().from(aiInsights),
-    db.select().from(businessMeta).orderBy(sql`aiUsageTokens desc`).limit(20),
-    db.select({ id: businesses.id, businessName: businesses.businessName }).from(businesses),
+    db.select().from(businessMeta).orderBy(sql`aiUsageTokens desc`),
+    db.select({ id: businesses.id, businessName: businesses.businessName, userId: businesses.userId }).from(businesses),
+    db.select({ id: userTable.id, email: userTable.email }).from(userTable),
   ])
 
   const bizName = new Map(bizRows.map((b) => [b.id, b.businessName]))
 
+  const ownerNameByUserId = new Map<string, string>()
+  for (const b of bizRows) {
+    if (!ownerNameByUserId.has(b.userId)) ownerNameByUserId.set(b.userId, b.businessName)
+  }
+  for (const u of userRows) {
+    if (!ownerNameByUserId.has(u.id)) ownerNameByUserId.set(u.id, u.email)
+  }
+
   const engine = await getSetting('aiEngine', 'rules')
+  const replyTone = await getSetting('aiReplyTone', 'professional')
+
+  const providerRows = providers.map((p) => ({
+    id: p.id,
+    userId: p.userId,
+    providerType: p.providerType,
+    apiKey: maskKey(p.apiKey),
+    hasKey: Boolean(p.apiKey),
+    isActive: p.isActive ?? false,
+    config: parseProviderConfig(p.config),
+    createdAt: p.createdAt,
+  }))
+
+  const insightRows = insights.map((i) => ({
+    id: i.id,
+    userId: i.userId,
+    insightType: i.insightType,
+    title: i.title,
+    description: i.description,
+    priority: i.priority ?? 'medium',
+    isRead: i.isRead ?? false,
+    isDismissed: i.isDismissed ?? false,
+    createdAt: new Date(i.createdAt).toISOString(),
+  }))
+
+  const usageRows = metaRows
+    .map((m) => ({
+      businessId: m.businessId,
+      businessName: bizName.get(m.businessId) ?? `Business #${m.businessId}`,
+      plan: m.plan ?? 'free',
+      tokens: Number(m.aiUsageTokens ?? 0),
+    }))
+    .filter((m) => bizName.has(m.businessId))
 
   const insightTypes = new Map<string, number>()
   for (const i of insights) insightTypes.set(i.insightType, (insightTypes.get(i.insightType) ?? 0) + 1)
@@ -39,7 +98,7 @@ export default async function AdminAiPage() {
     <div>
       <PageHeader
         title="AI Management"
-        description="Monitor AI providers, insights and per-business AI usage across the platform."
+        description="Configure AI providers, engine settings, insights and per-business AI usage across the platform."
       />
 
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
@@ -49,7 +108,13 @@ export default async function AdminAiPage() {
         <StatCard label="AI Engine" value={engine === 'rules' ? 'Local rules' : engine} tone="accent" icon={<Sparkles className="h-4 w-4" />} />
       </div>
 
-      <div className="mt-6 grid gap-4 lg:grid-cols-2">
+      <div className="mt-6">
+        <Card title="AI engine configuration" description="Choose the engine that powers insights and AI replies.">
+          <AiEngineConfig engine={engine} replyTone={replyTone} />
+        </Card>
+      </div>
+
+      <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card title="AI Insights by Type">
           <div className="divide-y divide-border">
             {insightTypes.size === 0 && <p className="p-4 text-sm text-muted-foreground">No insights generated yet.</p>}
@@ -81,30 +146,36 @@ export default async function AdminAiPage() {
       </div>
 
       <div className="mt-4">
-        <Card title="Top AI Users (by token usage)">
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/40">
-                  <th className="p-3 text-left font-medium text-muted-foreground">Business</th>
-                  <th className="p-3 text-left font-medium text-muted-foreground">AI tokens</th>
-                  <th className="p-3 text-left font-medium text-muted-foreground">Plan</th>
-                </tr>
-              </thead>
-              <tbody>
-                {metaRows.length === 0 && (
-                  <tr><td colSpan={3} className="p-6 text-center text-muted-foreground">No AI usage tracked yet.</td></tr>
-                )}
-                {metaRows.map((m) => (
-                  <tr key={m.id} className="border-b border-border hover:bg-muted/30">
-                    <td className="p-3 font-medium text-foreground">{bizName.get(m.businessId) ?? `Business #${m.businessId}`}</td>
-                    <td className="p-3 text-muted-foreground">{fmtNum(jsn<number>(m.aiUsageTokens, 0))}</td>
-                    <td className="p-3"><Badge tone={statusTone(m.plan)}>{m.plan}</Badge></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <Card
+          title="AI Providers"
+          description="Connect API keys for OpenAI, Claude and Gemini, assign them to businesses, and validate them."
+        >
+          <ProviderManager
+            providers={providerRows}
+            businesses={bizRows.map((b) => ({ id: b.id, businessName: b.businessName }))}
+            ownerNameByUserId={Object.fromEntries(ownerNameByUserId)}
+          />
+        </Card>
+      </div>
+
+      <div className="mt-4">
+        <Card
+          title="AI Insights"
+          description="All insights generated across the platform. Filter, dismiss and regenerate from the local rules engine."
+        >
+          <InsightManager
+            insights={insightRows}
+            ownerNameByUserId={Object.fromEntries(ownerNameByUserId)}
+          />
+        </Card>
+      </div>
+
+      <div className="mt-4">
+        <Card
+          title="AI Usage by Business"
+          description="Per-business token consumption. Reset counters or set a specific value."
+        >
+          <UsageManager rows={usageRows} />
         </Card>
       </div>
     </div>
