@@ -59,6 +59,7 @@ export default function InvoicesPage() {
   const [formDueDate, setFormDueDate] = useState('')
   const [formNotes, setFormNotes] = useState('')
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadInvoices() }, [statusFilter])
 
   async function loadInvoices() {

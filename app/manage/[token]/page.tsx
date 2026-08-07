@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import { useSession } from '@/lib/auth-client'
 import {
   CalendarDays, Clock, User, Phone, Mail, FileText, AlertCircle,
@@ -66,6 +67,7 @@ export default function ManageAppointmentPage() {
       .finally(() => setLoading(false))
   }, [token])
 
+  // eslint-disable-next-line react-hooks/purity
   const isPast = appointment && new Date(appointment.eventStart).getTime() < Date.now()
   const isCancelled = appointment?.status === 'cancelled'
   const isReadOnly = isPast || isCancelled
@@ -149,7 +151,7 @@ export default function ManageAppointmentPage() {
           <AlertCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
           <h1 className="text-xl font-bold text-foreground mb-2">Appointment Not Found</h1>
           <p className="text-sm text-muted-foreground mb-6">{error || 'This link is invalid or the appointment no longer exists.'}</p>
-          <a href="/" className="text-sm text-primary hover:underline">Go Home</a>
+          <Link href="/" className="text-sm text-primary hover:underline">Go Home</Link>
         </div>
       </div>
     )

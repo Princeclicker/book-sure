@@ -481,7 +481,7 @@ export function BookingForm({
             className="w-full px-3 py-2 rounded-lg border border-input bg-background text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-ring focus:border-ring placeholder:text-muted-foreground"
             placeholder="+250 7XX XXX XXX"
           />
-          <p className="text-xs text-muted-foreground mt-1">We'll send your confirmation via SMS</p>
+          <p className="text-xs text-muted-foreground mt-1">We&apos;ll send your confirmation via SMS</p>
         </div>
 
         <div>
@@ -542,7 +542,7 @@ export function BookingForm({
           ) : emailStatus === 'risky' ? (
             <p className="text-xs text-amber-600 mt-1">This email could not be automatically verified. Please confirm with a code.</p>
           ) : (
-            <p className="text-xs text-muted-foreground mt-1">We'll send your booking confirmation here</p>
+            <p className="text-xs text-muted-foreground mt-1">We&apos;ll send your booking confirmation here</p>
           )}
         </div>
 
@@ -553,7 +553,7 @@ export function BookingForm({
               <div>
                 <p className="text-sm font-medium text-amber-800 dark:text-amber-200">Email verification required</p>
                 <p className="text-xs text-amber-700 dark:text-amber-300 mt-0.5">
-                  We couldn't automatically verify this email. Please send a verification code to confirm.
+                  We couldn&apos;t automatically verify this email. Please send a verification code to confirm.
                 </p>
               </div>
             </div>

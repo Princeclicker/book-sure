@@ -110,30 +110,29 @@ export function Donut({
   const stroke = 18
   const r = (size - stroke) / 2
   const c = 2 * Math.PI * r
-  let offset = 0
+  const arcs = segments.map((s, i) => {
+    const len = (s.value / total) * c
+    const offset = segments.slice(0, i).reduce((sum, x) => sum + (x.value / total) * c, 0)
+    return { ...s, len, offset }
+  })
   return (
     <div className="flex items-center gap-4">
       <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
         <g transform={`rotate(-90 ${size / 2} ${size / 2})`}>
           <circle cx={size / 2} cy={size / 2} r={r} fill="none" stroke="var(--color-muted)" strokeWidth={stroke} />
-          {segments.map((s, i) => {
-            const len = (s.value / total) * c
-            const el = (
-              <circle
-                key={i}
-                cx={size / 2}
-                cy={size / 2}
-                r={r}
-                fill="none"
-                stroke={s.color}
-                strokeWidth={stroke}
-                strokeDasharray={`${len} ${c - len}`}
-                strokeDashoffset={-offset}
-              />
-            )
-            offset += len
-            return el
-          })}
+          {arcs.map((s, i) => (
+            <circle
+              key={i}
+              cx={size / 2}
+              cy={size / 2}
+              r={r}
+              fill="none"
+              stroke={s.color}
+              strokeWidth={stroke}
+              strokeDasharray={`${s.len} ${c - s.len}`}
+              strokeDashoffset={-s.offset}
+            />
+          ))}
         </g>
       </svg>
       <div className="flex flex-col gap-1.5">

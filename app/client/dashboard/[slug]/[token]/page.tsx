@@ -2,6 +2,7 @@
 
 import { useState, useEffect, Suspense } from 'react'
 import { useParams } from 'next/navigation'
+import Link from 'next/link'
 import {
   CalendarDays, Clock, CheckCircle2, XCircle, AlertCircle,
   Loader2, ChevronRight, FileText,
@@ -41,6 +42,8 @@ function ClientDashboardContent() {
 
   useEffect(() => {
     if (!token || !slug) {
+      // Guard for missing route params (cannot be derived from state).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setError('This link is missing your access token. Please use the link from your confirmation email.')
       setLoading(false)
       return
@@ -82,10 +85,10 @@ function ClientDashboardContent() {
             <ol className="list-decimal text-left space-y-1 pl-5">
               <li>Check your confirmation email for the correct link</li>
               <li>The link includes your unique access token</li>
-              <li>If you don't have a confirmation email, please contact the business directly</li>
+              <li>If you don&apos;t have a confirmation email, please contact the business directly</li>
             </ol>
           </div>
-          <a href="/" className="text-sm text-primary hover:underline">Go to Homepage</a>
+          <Link href="/" className="text-sm text-primary hover:underline">Go to Homepage</Link>
         </div>
       </div>
     )
@@ -158,6 +161,7 @@ export default function ClientDashboardPage() {
 function AppointmentCard({ appointment }: { appointment: AppointmentItem }) {
   const startDate = new Date(appointment.eventStart)
   const endDate = new Date(appointment.eventEnd)
+  // eslint-disable-next-line react-hooks/purity
   const isPast = startDate.getTime() < Date.now()
   const isCancelled = appointment.status === 'cancelled'
   const isDisabled = isPast || isCancelled

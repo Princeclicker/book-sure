@@ -107,6 +107,7 @@ export default function ContactDetailPage() {
     setLoading(false)
   }, [id])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadContact() }, [loadContact])
 
   function startEditing() {

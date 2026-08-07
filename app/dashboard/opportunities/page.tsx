@@ -53,11 +53,12 @@ export default function OpportunitiesPage({ params }: { params: Promise<{ profes
 
   useEffect(() => {
     const pipelineStages = getPipelineStages(profession)
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setStages(pipelineStages)
     if (pipelineStages.length > 0 && !formStage) {
       setFormStage(pipelineStages[0].id)
     }
-  }, [profession])
+  }, [profession, formStage])
 
   useEffect(() => { loadOpportunities() }, [profession])
 

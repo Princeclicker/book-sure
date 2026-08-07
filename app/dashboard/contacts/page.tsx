@@ -61,12 +61,13 @@ export default function ContactsPage() {
     setLoading(false)
   }, [search, statusFilter])
 
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { loadContacts() }, [loadContacts])
 
   useEffect(() => {
     const timer = setTimeout(() => { loadContacts() }, 300)
     return () => clearTimeout(timer)
-  }, [search, statusFilter])
+  }, [search, statusFilter, loadContacts])
 
   async function handleCreate(e: React.FormEvent) {
     e.preventDefault()

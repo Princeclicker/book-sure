@@ -134,7 +134,7 @@ function traceChain(filePath, visited = new Set(), depth = 0) {
     const resolved = resolveImport(filePath, imp);
     if (!resolved) continue;
 
-    console.log(`${'  '.repeat(depth + 1}→ ${imp} (${resolved})`);
+    console.log(`${'  '.repeat(depth + 1)}→ ${imp} (${resolved})`);
     
     // Check if this resolved file imports our target
     const content = getFileContent(resolved);

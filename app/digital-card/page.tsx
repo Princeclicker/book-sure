@@ -152,6 +152,7 @@ export default function DigitalBusinessCardPage() {
                 </div>
               )}
               {useLogo && logoUrl && !logoError && (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={logoUrl} alt="Logo" className="w-8 h-8 rounded"
                   onLoad={() => setLogoLoading(false)}
                   onError={() => { setLogoLoading(false); setLogoError(true) }} />

@@ -99,6 +99,7 @@ export function BrandingCustomizer({
         <div className="space-y-4">
           {logoUrl && (
             <div className="relative w-32 h-32 border border-border rounded-lg overflow-hidden bg-background p-2">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={logoUrl}
                 alt="Business Logo"

@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams } from 'next/navigation'
 import { getFormByToken, submitForm } from '@/app/actions/routing-forms'
 import { Loader2, CheckCircle2, Send } from 'lucide-react'
 
@@ -9,7 +10,8 @@ interface FormData {
   redirectUrl: string | null; isActive: boolean | null
 }
 
-export default function RoutingFormPage({ params }: { params: Promise<{ token: string }> }) {
+export default function RoutingFormPage() {
+  const { token } = useParams<{ token: string }>()
   const [form, setForm] = useState<FormData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -17,24 +19,23 @@ export default function RoutingFormPage({ params }: { params: Promise<{ token: s
   const [submitting, setSubmitting] = useState(false)
   const [values, setValues] = useState<Record<string, string>>({})
 
-  useEffect(() => {
-    loadForm()
-  }, [])
-
-  async function loadForm() {
-    const { token } = await params
+  const loadForm = useCallback(async () => {
     const f = await getFormByToken(token)
     if (!f) { setError('Form not found'); setLoading(false); return }
     setForm(f as any)
     setLoading(false)
-  }
+  }, [token])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadForm()
+  }, [loadForm])
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
     setSubmitting(true)
     setError('')
     try {
-      const { token } = await params
       const redirectUrl = await submitForm(token, values)
       setSuccess(true)
       if (redirectUrl) {

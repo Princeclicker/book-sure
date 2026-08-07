@@ -118,7 +118,7 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
             </p>
             <p className="text-sm text-muted-foreground">
               Check your inbox and click the link to verify your email. If you
-              don't see it, check your spam folder.
+              don&apos;t see it, check your spam folder.
             </p>
             {resendSent ? (
               <p className="text-sm text-muted-foreground">

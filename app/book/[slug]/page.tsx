@@ -49,6 +49,7 @@ export default async function BookingPage({
       <div className="mx-auto max-w-lg px-4 py-10 sm:px-6">
         <div className="mb-8 text-center">
           {business.logoUrl && (
+            // eslint-disable-next-line @next/next/no-img-element
             <img
               src={business.logoUrl}
               alt={business.businessName}

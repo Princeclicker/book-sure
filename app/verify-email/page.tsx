@@ -18,6 +18,8 @@ function VerifyEmailContent() {
 
   useEffect(() => {
     if (!token) {
+      // Guard for missing query param (cannot be derived from state).
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setStatus('error')
       setError('This verification link is missing its token. Please request a new one.')
       return
@@ -77,7 +79,7 @@ function VerifyEmailContent() {
         {status === 'error' && (
           <>
             <h1 className="text-2xl font-semibold tracking-tight text-foreground mb-2">
-              Couldn't verify your email
+              Couldn&apos;t verify your email
             </h1>
             <p className="text-sm text-destructive mb-6">{error}</p>
             <Link

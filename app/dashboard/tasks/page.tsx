@@ -56,6 +56,7 @@ export default function TasksPage() {
   const [formDueDate, setFormDueDate] = useState('')
   const [formStatus, setFormStatus] = useState('todo')
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   useEffect(() => { loadTasks() }, [statusFilter, priorityFilter])
 
   async function loadTasks() {

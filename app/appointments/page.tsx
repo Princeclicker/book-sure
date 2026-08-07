@@ -83,6 +83,8 @@ export default function AppointmentsPage() {
   }, [router, buildUrl])
 
   useEffect(() => {
+    // Reset per-fetch state before the async fetch starts.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setLoading(true)
     setError(null)
     const sp = new URLSearchParams({ page: String(page), limit: String(limit) })

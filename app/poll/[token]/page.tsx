@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
+import { useParams } from 'next/navigation'
 import { getPollByToken, submitVote } from '@/app/actions/polls'
 import { CalendarClock, CheckCircle2, Clock, Loader2 } from 'lucide-react'
 
@@ -11,7 +12,8 @@ interface PollData {
   votes: { id: number; voterName: string; selectedSlots: string[] }[]
 }
 
-export default function PollVotePage({ params }: { params: Promise<{ token: string }> }) {
+export default function PollVotePage() {
+  const { token } = useParams<{ token: string }>()
   const [poll, setPoll] = useState<PollData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -22,17 +24,17 @@ export default function PollVotePage({ params }: { params: Promise<{ token: stri
   const [selectedSlots, setSelectedSlots] = useState<string[]>([])
   const [submitting, setSubmitting] = useState(false)
 
-  useEffect(() => {
-    loadPoll()
-  }, [])
-
-  async function loadPoll() {
-    const { token } = await params
+  const loadPoll = useCallback(async () => {
     const p = await getPollByToken(token)
     if (!p) { setError('Poll not found'); setLoading(false); return }
     setPoll(p as any)
     setLoading(false)
-  }
+  }, [token])
+
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    loadPoll()
+  }, [loadPoll])
 
   function toggleSlot(slot: string) {
     setSelectedSlots(prev =>
@@ -46,7 +48,6 @@ export default function PollVotePage({ params }: { params: Promise<{ token: stri
     setSubmitting(true)
     setError('')
     try {
-      const { token } = await params
       await submitVote({
         token,
         voterName,

@@ -60,6 +60,7 @@ export function DigitalCard({ name, title, email, phone, website, address, city,
             <div className="flex items-center gap-3">
               <div className="w-14 h-14 rounded-full bg-[#00b4d8]/20 flex items-center justify-center overflow-hidden border-2 border-[#00b4d8]/40">
                 {logo && !logoFailed ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img src={logo} alt="Avatar" className="w-full h-full object-cover"
                     onError={() => setLogoFailed(true)} />
                 ) : (
@@ -72,6 +73,7 @@ export function DigitalCard({ name, title, email, phone, website, address, city,
               </div>
             </div>
             {logo && !logoFailed && (
+              // eslint-disable-next-line @next/next/no-img-element
               <img src={logo} alt="Company Logo" className="w-10 h-10 rounded-lg object-contain border border-white/10"
                 onError={() => setLogoFailed(true)} />
             )}
@@ -146,6 +148,7 @@ export function DigitalCard({ name, title, email, phone, website, address, city,
             </a>
             <div className="w-20 h-20 bg-white rounded-xl flex items-center justify-center shrink-0">
               {qrDataUrl ? (
+                // eslint-disable-next-line @next/next/no-img-element
                 <img src={qrDataUrl} alt="QR Code" className="w-16 h-16" />
               ) : (
                 <div className="w-16 h-16 bg-gray-100 rounded animate-pulse" />
