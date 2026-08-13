@@ -7,6 +7,9 @@ const geistSans = Geist({ variable: '--font-geist-sans', subsets: ['latin'] })
 const geistMono = Geist_Mono({
   variable: '--font-geist-mono',
   subsets: ['latin'],
+  // Monospace text is used in secondary controls and admin details, not above the fold.
+  // Avoid preloading a font that is not needed during initial page render.
+  preload: false,
 })
 
 export const metadata: Metadata = {
