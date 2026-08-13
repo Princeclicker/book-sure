@@ -19,6 +19,8 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
   const [error, setError] = useState<string | null>(null)
   const [verificationRequired, setVerificationRequired] = useState(false)
   const [resendSent, setResendSent] = useState(false)
+  const [code, setCode] = useState('')
+  const [verifyingCode, setVerifyingCode] = useState(false)
   const [loading, setLoading] = useState(false)
 
   const isSignUp = mode === 'sign-up'
@@ -83,6 +85,34 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
     router.refresh()
   }
 
+  const handleVerifyCode = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setError(null)
+    setVerifyingCode(true)
+    const response = await fetch('/api/verify-code', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, code }) })
+    const result = await response.json()
+    setVerifyingCode(false)
+    if (!response.ok || !result.valid) {
+      setError(result.reason || 'Invalid or expired verification code')
+      return
+    }
+    setVerificationRequired(false)
+    setCode('')
+    setError(null)
+    if (!isSignUp) {
+      const signedIn = await authClient.signIn.email({ email, password })
+      if (signedIn.error) {
+        setError('Email verified. Please sign in again.')
+        return
+      }
+      router.push('/dashboard')
+      router.refresh()
+    } else {
+      router.push('/sign-in?verified=1')
+      router.refresh()
+    }
+  }
+
   const handleResend = async () => {
     setError(null)
     setResendSent(false)
@@ -111,18 +141,18 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
         {verificationRequired ? (
           <div className="flex flex-col gap-4">
             <p className="text-sm text-foreground">
-              {isSignUp
-                ? 'Your account has been created. We sent a confirmation link to '
-                : 'Your email address has not been verified yet. We sent a confirmation link to '}
+              {isSignUp ? 'Your account has been created. We sent a verification code to ' : 'Your email address is not verified. We sent a verification code to '}
               <span className="font-medium">{email}</span>.
             </p>
-            <p className="text-sm text-muted-foreground">
-              Check your inbox and click the link to verify your email. If you
-              don&apos;t see it, check your spam folder.
-            </p>
+            <form onSubmit={handleVerifyCode} className="flex flex-col gap-3">
+              <Label htmlFor="verification-code">Verification code</Label>
+              <Input id="verification-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\\D/g, ''))} placeholder="000000" required />
+              <Button type="submit" disabled={verifyingCode || code.length !== 6} className="w-full">{verifyingCode ? 'Verifying...' : 'Verify email'}</Button>
+            </form>
+            <p className="text-sm text-muted-foreground">The code expires in 10 minutes. Check your spam folder if you don&apos;t see it.</p>
             {resendSent ? (
               <p className="text-sm text-muted-foreground">
-                A new confirmation link is on its way.
+                A new verification code is on its way.
               </p>
             ) : (
               <Button
@@ -131,7 +161,7 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
                 className="w-full"
                 onClick={handleResend}
               >
-                Resend confirmation email
+                Resend verification code
               </Button>
             )}
             <Link

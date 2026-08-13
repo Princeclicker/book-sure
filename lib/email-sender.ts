@@ -1,4 +1,7 @@
 import nodemailer from 'nodemailer'
+import { db } from '@/lib/db'
+import { emailVerificationCodes } from '@/lib/db/tables'
+import { and, eq } from 'drizzle-orm'
 
 const SMTP_HOST = process.env.SMTP_HOST || ''
 const SMTP_PORT = parseInt(process.env.SMTP_PORT || '587', 10)
@@ -61,6 +64,31 @@ export async function sendVerificationCodeEmail(email: string, code: string): Pr
     return true
   } catch (error) {
     console.error('Failed to send verification email:', error)
+    return false
+  }
+}
+
+export async function sendAuthVerificationCodeEmail(email: string, name?: string | null): Promise<boolean> {
+  const code = Math.floor(100000 + Math.random() * 900000).toString()
+  const transporter = getTransporter()
+  const cleanEmail = email.toLowerCase().trim()
+  await db.update(emailVerificationCodes).set({ used: true as any }).where(and(eq(emailVerificationCodes.email, cleanEmail), eq(emailVerificationCodes.used, false as any)))
+  await db.insert(emailVerificationCodes).values({ email: cleanEmail, code, expiresAt: new Date(Date.now() + 10 * 60 * 1000), used: false as any, createdAt: new Date() })
+  const greeting = name ? `Hi ${name},` : 'Hi,'
+  const subject = 'Your BookSure verification code'
+  const text = `${greeting}\n\nYour BookSure email verification code is: ${code}\n\nThis code expires in 10 minutes.`
+  const html = `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;"><h2>Verify your BookSure email</h2><p>${greeting}</p><p>Enter this code to verify your email address:</p><div style="font-size: 28px; font-weight: bold; letter-spacing: 6px; text-align: center; padding: 16px; background: #f3f4f6; border-radius: 8px; margin: 16px 0;">${code}</div><p style="color: #6b7280; font-size: 14px;">This code expires in 10 minutes.</p></div>`
+
+  if (!transporter) {
+    console.log(`[v0] Account verification code for ${email}: ${code}`)
+    return true
+  }
+
+  try {
+    await transporter.sendMail({ from: SMTP_FROM, to: email, subject, text, html })
+    return true
+  } catch (error) {
+    console.error('Failed to send account verification code:', error)
     return false
   }
 }

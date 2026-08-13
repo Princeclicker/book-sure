@@ -3,7 +3,7 @@ import { createAuthMiddleware } from 'better-auth/api'
 import { drizzleAdapter } from 'better-auth/adapters/drizzle'
 import { db } from '@/lib/db'
 import { validateName, validateEmail, validatePassword } from '@/lib/validation'
-import { sendAuthVerificationEmail } from '@/lib/email-sender'
+import { sendAuthVerificationCodeEmail } from '@/lib/email-sender'
 const isDev = process.env.NODE_ENV === 'development' && !process.env.DATABASE_URL
 
 let devDbRef: any = null
@@ -76,12 +76,7 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60 * 24,
     sendVerificationEmail: async ({ user, token }) => {
-      const appUrl =
-        process.env.NEXT_PUBLIC_APP_URL ??
-        process.env.BETTER_AUTH_URL ??
-        'http://localhost:3000'
-      const url = `${appUrl}/verify-email?token=${encodeURIComponent(token)}`
-      await sendAuthVerificationEmail(user.email, url, user.name)
+      await sendAuthVerificationCodeEmail(user.email, user.name)
     },
   },
   hooks: {

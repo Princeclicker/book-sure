@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/lib/db'
-import { emailVerificationCodes } from '@/lib/db/tables'
+import { emailVerificationCodes, user } from '@/lib/db/tables'
 import { eq, and, gt } from 'drizzle-orm'
 
 export async function POST(request: NextRequest) {
@@ -30,6 +30,9 @@ export async function POST(request: NextRequest) {
     if (!stored.length) {
       return NextResponse.json({ valid: false, reason: 'Invalid or expired verification code' }, { status: 400 })
     }
+
+    await db.update(emailVerificationCodes).set({ used: true as any }).where(eq(emailVerificationCodes.id, stored[0].id))
+    await db.update(user).set({ emailVerified: true, updatedAt: new Date() }).where(eq(user.email, cleanEmail))
 
     return NextResponse.json({ valid: true })
   } catch (error) {
