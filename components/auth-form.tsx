@@ -76,7 +76,17 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
       return
     }
 
-    if (isSignUp && !data?.token) {
+    if (isSignUp) {
+      const codeResponse = await fetch('/api/send-account-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email }),
+      })
+      if (!codeResponse.ok) {
+        const codeResult = await codeResponse.json().catch(() => null)
+        setError(codeResult?.error || 'Unable to create a verification code')
+        return
+      }
       setVerificationRequired(true)
       return
     }
@@ -116,9 +126,14 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
   const handleResend = async () => {
     setError(null)
     setResendSent(false)
-    const res = await authClient.sendVerificationEmail({ email, callbackURL: '/' })
-    if (res.error) {
-      setError('Could not send the verification email. Please try again.')
+    const res = await fetch('/api/send-account-code', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email }),
+    })
+    if (!res.ok) {
+      const result = await res.json().catch(() => null)
+      setError(result?.error || 'Could not create a verification code. Please try again.')
       return
     }
     setResendSent(true)
@@ -146,7 +161,7 @@ export function AuthForm({ mode }: { mode: 'sign-in' | 'sign-up' }) {
             </p>
             <form onSubmit={handleVerifyCode} className="flex flex-col gap-3">
               <Label htmlFor="verification-code">Verification code</Label>
-              <Input id="verification-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\\D/g, ''))} placeholder="000000" required />
+              <Input id="verification-code" inputMode="numeric" autoComplete="one-time-code" maxLength={6} value={code} onChange={(e) => setCode(e.target.value.replace(/\D/g, ''))} placeholder="000000" required />
               <Button type="submit" disabled={verifyingCode || code.length !== 6} className="w-full">{verifyingCode ? 'Verifying...' : 'Verify email'}</Button>
             </form>
             <p className="text-sm text-muted-foreground">The code expires in 10 minutes. Check your spam folder if you don&apos;t see it.</p>

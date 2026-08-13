@@ -85,7 +85,6 @@ export async function sendAuthVerificationCodeEmail(email: string, name?: string
   }
 
   try {
-    await transporter.verify()
     await transporter.sendMail({ from: SMTP_FROM || SMTP_USER, to: email, subject, text, html })
     return true
   } catch (error) {
