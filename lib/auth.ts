@@ -75,14 +75,18 @@ export const auth = betterAuth({
     sendOnSignIn: true,
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60 * 24,
-    sendVerificationEmail: async ({ user, token }) => {
-      await sendAuthVerificationCodeEmail(user.email, user.name)
+    sendVerificationEmail: async ({ user }) => {
+      const sent = await sendAuthVerificationCodeEmail(user.email, user.name)
+      if (!sent) {
+        throw new Error('Unable to send verification email')
+      }
     },
   },
   hooks: {
     before: validateAuthInput,
   },
   trustedOrigins: [
+    'https://*.v0.build',
     ...(process.env.V0_RUNTIME_URL ? [process.env.V0_RUNTIME_URL] : []),
     ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
     ...(process.env.VERCEL_PROJECT_PRODUCTION_URL

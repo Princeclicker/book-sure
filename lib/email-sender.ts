@@ -80,15 +80,16 @@ export async function sendAuthVerificationCodeEmail(email: string, name?: string
   const html = `<div style="font-family: sans-serif; max-width: 480px; margin: 0 auto;"><h2>Verify your BookSure email</h2><p>${greeting}</p><p>Enter this code to verify your email address:</p><div style="font-size: 28px; font-weight: bold; letter-spacing: 6px; text-align: center; padding: 16px; background: #f3f4f6; border-radius: 8px; margin: 16px 0;">${code}</div><p style="color: #6b7280; font-size: 14px;">This code expires in 10 minutes.</p></div>`
 
   if (!transporter) {
-    console.log(`[v0] Account verification code for ${email}: ${code}`)
-    return true
+    console.error('[v0] Account verification email was not sent: SMTP_HOST, SMTP_USER, or SMTP_PASS is missing')
+    return false
   }
 
   try {
-    await transporter.sendMail({ from: SMTP_FROM, to: email, subject, text, html })
+    await transporter.verify()
+    await transporter.sendMail({ from: SMTP_FROM || SMTP_USER, to: email, subject, text, html })
     return true
   } catch (error) {
-    console.error('Failed to send account verification code:', error)
+    console.error('[v0] Failed to send account verification code:', error)
     return false
   }
 }
