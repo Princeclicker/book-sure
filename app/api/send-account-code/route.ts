@@ -15,8 +15,7 @@ export async function POST(request: Request) {
     if (account.emailVerified) return NextResponse.json({ sent: true })
 
     const sent = await sendAuthVerificationCodeEmail(account.email, account.name)
-    if (!sent) return NextResponse.json({ error: 'Email could not be sent' }, { status: 503 })
-    return NextResponse.json({ sent: true })
+    return NextResponse.json({ sent, codeCreated: true, emailDelivery: sent ? 'sent' : 'unavailable' })
   } catch (error) {
     console.error('[v0] Account verification code creation failed:', error)
     return NextResponse.json({ error: 'Unable to create verification code' }, { status: 500 })

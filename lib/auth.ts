@@ -76,24 +76,35 @@ export const auth = betterAuth({
     autoSignInAfterVerification: true,
     expiresIn: 60 * 60 * 24,
     sendVerificationEmail: async ({ user }) => {
-      const sent = await sendAuthVerificationCodeEmail(user.email, user.name)
-      if (!sent) {
-        throw new Error('Unable to send verification email')
-      }
+      // Code persistence must not roll back account creation when SMTP is unavailable.
+      await sendAuthVerificationCodeEmail(user.email, user.name)
     },
   },
   hooks: {
     before: validateAuthInput,
   },
-  trustedOrigins: [
-    'https://*.v0.build',
-    ...(process.env.V0_RUNTIME_URL ? [process.env.V0_RUNTIME_URL] : []),
-    ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
-    ...(process.env.VERCEL_PROJECT_PRODUCTION_URL
-      ? [`https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`]
-      : []),
-    ...(isDev ? ['http://localhost:3000'] : []),
-  ],
+  trustedOrigins: async (request) => {
+    const configuredOrigins = [
+      'https://*.v0.build',
+      'https://*.vercel.run',
+      process.env.V0_RUNTIME_URL,
+      process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : undefined,
+      process.env.VERCEL_PROJECT_PRODUCTION_URL
+        ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}`
+        : undefined,
+      isDev ? 'http://localhost:3000' : undefined,
+    ].filter((origin): origin is string => Boolean(origin))
+    const requestOrigin = request?.headers?.get('origin')
+    if (requestOrigin) {
+      try {
+        const hostname = new URL(requestOrigin).hostname
+        if (hostname.endsWith('.v0.build')) configuredOrigins.push(requestOrigin)
+      } catch {
+        // Ignore malformed Origin headers.
+      }
+    }
+    return configuredOrigins
+  },
   session: {
     expiresIn: 60 * 60 * 24 * 7, // 7 days
     updateAge: 60 * 60 * 24, // 1 day
